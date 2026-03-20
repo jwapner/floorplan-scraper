@@ -2,8 +2,8 @@ name: Check Gunther Floorplans
 
 on:
   schedule:
-    - cron: "*/15 * * * *"  # every 15 minutes
-    - cron: "0 1 * * *"     # 9:00 PM America/New_York during daylight saving time
+    - cron: "*/30 * * * *"
+    - cron: "0 1 * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,13 +31,10 @@ jobs:
 
       - name: Run scraper
         env:
+          RUN_MODE: check
           ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
           ALERT_TO: ${{ secrets.ALERT_TO }}
           ALERT_APP_PASSWORD: ${{ secrets.ALERT_APP_PASSWORD }}
-          TWILIO_SID: ${{ secrets.TWILIO_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          TWILIO_TO_NUMBER: ${{ secrets.TWILIO_TO_NUMBER }}
         run: python scrape.py
 
       - name: Commit updated state file
@@ -53,27 +50,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Send daily email
+      - name: Check out repo
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install Python packages
+        run: pip install -r requirements.txt
+
+      - name: Run daily summary logic
         env:
+          RUN_MODE: daily_summary
           ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
           ALERT_TO: ${{ secrets.ALERT_TO }}
           ALERT_APP_PASSWORD: ${{ secrets.ALERT_APP_PASSWORD }}
+        run: python scrape.py
+
+      - name: Commit updated state file
         run: |
-          python - <<'EOF'
-          import os
-          import smtplib
-          from email.mime.text import MIMEText
-
-          sender = os.environ["ALERT_EMAIL"]
-          recipients = [x.strip() for x in os.environ["ALERT_TO"].split(",") if x.strip()]
-          password = os.environ["ALERT_APP_PASSWORD"]
-
-          msg = MIMEText("No floorplan changes detected today.")
-          msg["Subject"] = "Gunther daily update"
-          msg["From"] = sender
-          msg["To"] = ", ".join(recipients)
-
-          with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-              smtp.login(sender, password)
-              smtp.sendmail(sender, recipients, msg.as_string())
-          EOF
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add state.json || true
+          git diff --cached --quiet || git commit -m "Reset daily change flag"
+          git push
