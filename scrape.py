@@ -51,7 +51,6 @@ def parse_floorplans(html: str) -> list[dict]:
 
     for line in lines:
         if plan_re.match(line):
-            # save prior complete entry if useful
             if current and (
                 current.get("availability_count")
                 or current.get("available_on")
@@ -95,7 +94,6 @@ def parse_floorplans(html: str) -> list[dict]:
     ):
         results.append(current)
 
-    # dedupe by most important fields
     seen = set()
     cleaned = []
     for row in results:
@@ -109,7 +107,6 @@ def parse_floorplans(html: str) -> list[dict]:
             seen.add(key)
             cleaned.append(row)
 
-    # keep only floorplans that appear to have availability info
     cleaned = [
         row for row in cleaned
         if row.get("availability_count") or row.get("available_on")
@@ -119,14 +116,29 @@ def parse_floorplans(html: str) -> list[dict]:
     return cleaned
 
 
-def load_previous() -> list[dict]:
+def load_state() -> dict:
     if STATE_FILE.exists():
-        return json.loads(STATE_FILE.read_text())
-    return []
+        data = json.loads(STATE_FILE.read_text())
+
+        if isinstance(data, list):
+            return {
+                "floorplans": data,
+                "changed_today": False,
+            }
+
+        if isinstance(data, dict):
+            data.setdefault("floorplans", [])
+            data.setdefault("changed_today", False)
+            return data
+
+    return {
+        "floorplans": [],
+        "changed_today": False,
+    }
 
 
-def save_current(data: list[dict]) -> None:
-    STATE_FILE.write_text(json.dumps(data, indent=2))
+def save_state(state: dict) -> None:
+    STATE_FILE.write_text(json.dumps(state, indent=2))
 
 
 def format_row(row: dict) -> str:
@@ -140,10 +152,10 @@ def format_row(row: dict) -> str:
 
 def send_email(subject: str, body: str) -> None:
     sender = os.getenv("ALERT_EMAIL")
-    recipients = [x.strip() for x in os.getenv("ALERT_TO").split(",")]
+    recipients = [x.strip() for x in os.getenv("ALERT_TO", "").split(",") if x.strip()]
     password = os.getenv("ALERT_APP_PASSWORD")
 
-    if not sender or not recipient or not password:
+    if not sender or not recipients or not password:
         print("Email secrets not set. Skipping email.")
         print(body)
         return
@@ -158,18 +170,17 @@ def send_email(subject: str, body: str) -> None:
         smtp.sendmail(sender, recipients, msg.as_string())
 
 
-def main() -> None:
+def check_floorplans() -> None:
+    state = load_state()
+    previous = state.get("floorplans", [])
+
     html = get_page_html(URL)
     current = parse_floorplans(html)
-    previous = load_previous()
 
-    # first run: seed state only
     if not previous:
-        print("No existing state found. Saving initial snapshot without alert.")
-        print("Initial snapshot:")
-        for row in current:
-            print("-", format_row(row))
-        save_current(current)
+        print("No existing floorplan state found. Saving initial snapshot without alert.")
+        state["floorplans"] = current
+        save_state(state)
         return
 
     prev_map = {row["floorplan"]: row for row in previous}
@@ -177,7 +188,6 @@ def main() -> None:
 
     changes = []
 
-    # new or changed floorplans
     for floorplan, curr in curr_map.items():
         prev = prev_map.get(floorplan)
         if prev is None:
@@ -196,7 +206,6 @@ def main() -> None:
                 f'CHANGED: {floorplan}\n  ' + "\n  ".join(changed_fields)
             )
 
-    # removed floorplans
     for floorplan, prev in prev_map.items():
         if floorplan not in curr_map:
             changes.append(f"REMOVED: {format_row(prev)}")
@@ -205,11 +214,32 @@ def main() -> None:
         body = "Gunther floorplan changes detected on /floorplans:\n\n" + "\n\n".join(changes)
         print(body)
         send_email("Gunther floorplan update", body)
+        state["changed_today"] = True
     else:
         print("No changes found.")
 
-    save_current(current)
+    state["floorplans"] = current
+    save_state(state)
+
+
+def send_daily_no_changes_email() -> None:
+    state = load_state()
+
+    if state.get("changed_today", False):
+        print("Changes occurred today. No daily no-changes email sent.")
+    else:
+        body = "No floorplan changes were detected today."
+        print(body)
+        send_email("Gunther daily update", body)
+
+    state["changed_today"] = False
+    save_state(state)
 
 
 if __name__ == "__main__":
-    main()
+    mode = os.getenv("RUN_MODE", "check")
+
+    if mode == "daily_summary":
+        send_daily_no_changes_email()
+    else:
+        check_floorplans()
