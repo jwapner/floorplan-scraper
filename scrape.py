@@ -2,6 +2,8 @@ import json
 import os
 import re
 import smtplib
+import random
+import time
 from email.mime.text import MIMEText
 from pathlib import Path
 
@@ -26,8 +28,12 @@ def get_page_html(url: str) -> str:
 
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=90000)
-            page.wait_for_timeout(5000)
-            return page.content()
+
+            page.wait_for_timeout(random.randint(3000, 7000))
+
+            html = page.content()
+            return html
+
         finally:
             browser.close()
 
@@ -174,6 +180,10 @@ def send_email(subject: str, body: str) -> None:
 
 
 def check_floorplans() -> None:
+    delay = random.randint(0, 1200)  # 0–20 minutes
+    print(f"Sleeping for {delay} seconds before scraping...")
+    time.sleep(delay)
+    
     state = load_state()
     previous = state.get("floorplans", [])
 
