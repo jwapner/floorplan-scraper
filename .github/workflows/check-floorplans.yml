@@ -2,7 +2,8 @@ name: Check Gunther Floorplans
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "*/15 * * * *"  # every 15 minutes
+    - cron: "0 1 * * *"     # 9:00 PM America/New_York during daylight saving time
   workflow_dispatch:
 
 permissions:
@@ -10,6 +11,7 @@ permissions:
 
 jobs:
   scrape:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/15 * * * *'
     runs-on: ubuntu-latest
 
     steps:
@@ -32,6 +34,10 @@ jobs:
           ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
           ALERT_TO: ${{ secrets.ALERT_TO }}
           ALERT_APP_PASSWORD: ${{ secrets.ALERT_APP_PASSWORD }}
+          TWILIO_SID: ${{ secrets.TWILIO_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          TWILIO_TO_NUMBER: ${{ secrets.TWILIO_TO_NUMBER }}
         run: python scrape.py
 
       - name: Commit updated state file
@@ -41,3 +47,33 @@ jobs:
           git add state.json || true
           git diff --cached --quiet || git commit -m "Update floorplan state"
           git push
+
+  daily-no-changes-email:
+    if: github.event.schedule == '0 1 * * *'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send daily email
+        env:
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+          ALERT_TO: ${{ secrets.ALERT_TO }}
+          ALERT_APP_PASSWORD: ${{ secrets.ALERT_APP_PASSWORD }}
+        run: |
+          python - <<'EOF'
+          import os
+          import smtplib
+          from email.mime.text import MIMEText
+
+          sender = os.environ["ALERT_EMAIL"]
+          recipients = [x.strip() for x in os.environ["ALERT_TO"].split(",") if x.strip()]
+          password = os.environ["ALERT_APP_PASSWORD"]
+
+          msg = MIMEText("No floorplan changes detected today.")
+          msg["Subject"] = "Gunther daily update"
+          msg["From"] = sender
+          msg["To"] = ", ".join(recipients)
+
+          with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+              smtp.login(sender, password)
+              smtp.sendmail(sender, recipients, msg.as_string())
+          EOF
