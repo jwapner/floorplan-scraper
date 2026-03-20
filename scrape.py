@@ -140,7 +140,7 @@ def format_row(row: dict) -> str:
 
 def send_email(subject: str, body: str) -> None:
     sender = os.getenv("ALERT_EMAIL")
-    recipient = os.getenv("ALERT_TO")
+    recipients = [x.strip() for x in os.getenv("ALERT_TO").split(",")]
     password = os.getenv("ALERT_APP_PASSWORD")
 
     if not sender or not recipient or not password:
@@ -151,11 +151,11 @@ def send_email(subject: str, body: str) -> None:
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = sender
-    msg["To"] = recipient
+    msg["To"] = ", ".join(recipients)
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(sender, password)
-        smtp.send_message(msg)
+        smtp.sendmail(sender, recipients, msg.as_string())
 
 
 def main() -> None:
