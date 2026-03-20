@@ -21,8 +21,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install packages
+      - name: Install Python packages
         run: pip install -r requirements.txt
+
+      - name: Install Playwright browser
+        run: python -m playwright install --with-deps chromium
 
       - name: Run scraper
         env:
