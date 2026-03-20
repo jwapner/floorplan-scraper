@@ -23,10 +23,13 @@ def get_page_html(url: str) -> str:
             ),
             viewport={"width": 1440, "height": 2000},
         )
-        page.goto(url, wait_until="networkidle", timeout=90000)
-        html = page.content()
-        browser.close()
-        return html
+
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=90000)
+            page.wait_for_timeout(5000)
+            return page.content()
+        finally:
+            browser.close()
 
 
 def normalize_whitespace(text: str) -> str:
