@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   scrape:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/15 * * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 12-23,0 * * *'
     runs-on: ubuntu-latest
 
     steps:
@@ -60,6 +60,9 @@ jobs:
 
       - name: Install Python packages
         run: pip install -r requirements.txt
+
+      - name: Install Playwright browser
+        run: python -m playwright install --with-deps chromium
 
       - name: Run daily summary logic
         env:
