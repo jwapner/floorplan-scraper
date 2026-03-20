@@ -1,72 +1,155 @@
 import json
 import os
+import re
 import smtplib
 from email.mime.text import MIMEText
 from pathlib import Path
 
-import requests
 from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
 URL = "https://www.thegunther.com/floorplans"
 STATE_FILE = Path("state.json")
 
 
-def fetch_floorplans():
-    r = requests.get(URL, timeout=30)
-    r.raise_for_status()
-    soup = BeautifulSoup(r.text, "html.parser")
+def get_page_html(url: str) -> str:
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page(
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/146.0.0.0 Safari/537.36"
+            ),
+            viewport={"width": 1440, "height": 2000},
+        )
+        page.goto(url, wait_until="networkidle", timeout=90000)
+        html = page.content()
+        browser.close()
+        return html
 
-    text = soup.get_text("\n", strip=True).splitlines()
-    lines = [line.strip() for line in text if line.strip()]
+
+def normalize_whitespace(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def parse_floorplans(html: str) -> list[dict]:
+    soup = BeautifulSoup(html, "html.parser")
+    text = soup.get_text("\n", strip=True)
+    lines = [normalize_whitespace(x) for x in text.splitlines() if normalize_whitespace(x)]
 
     results = []
     current = None
 
+    plan_re = re.compile(r"^[A-Z]\d{1,2}$")
+    price_re = re.compile(r"^\$[\d,]+(?:/\s*month)?$")
+    available_on_re = re.compile(r"Available On:\s*([0-9]{1,2}/[0-9]{1,2}/[0-9]{4})")
+    count_re = re.compile(r"^\d+\s+Available$", re.IGNORECASE)
+    beds_re = re.compile(r"^\d+\s*Bed$", re.IGNORECASE)
+    baths_re = re.compile(r"^\d+\s*Bath$", re.IGNORECASE)
+    sqft_re = re.compile(r"^\d+\s*Sq\.?\s*Ft\.?$", re.IGNORECASE)
+
     for line in lines:
-        # catches names like A5, A7, S5, etc.
-        if len(line) <= 6 and any(ch.isdigit() for ch in line) and any(ch.isalpha() for ch in line):
-            current = {"floorplan": line, "availability": None, "available_on": None}
-            results.append(current)
+        if plan_re.match(line):
+            # save prior complete entry if useful
+            if current and (
+                current.get("availability_count")
+                or current.get("available_on")
+                or current.get("price")
+            ):
+                results.append(current)
+
+            current = {
+                "floorplan": line,
+                "beds": None,
+                "baths": None,
+                "sqft": None,
+                "availability_count": None,
+                "price": None,
+                "available_on": None,
+            }
             continue
 
-        if current:
-            if "Available" in line and current["availability"] is None:
-                current["availability"] = line
-            if line.startswith("Available On:"):
-                current["available_on"] = line.replace("Available On:", "").strip()
+        if not current:
+            continue
 
-    cleaned = []
+        if beds_re.match(line) and current["beds"] is None:
+            current["beds"] = line
+        elif baths_re.match(line) and current["baths"] is None:
+            current["baths"] = line
+        elif sqft_re.match(line) and current["sqft"] is None:
+            current["sqft"] = line
+        elif count_re.match(line) and current["availability_count"] is None:
+            current["availability_count"] = line
+        elif price_re.match(line) and current["price"] is None:
+            current["price"] = line
+        else:
+            m = available_on_re.search(line)
+            if m and current["available_on"] is None:
+                current["available_on"] = m.group(1)
+
+    if current and (
+        current.get("availability_count")
+        or current.get("available_on")
+        or current.get("price")
+    ):
+        results.append(current)
+
+    # dedupe by most important fields
     seen = set()
+    cleaned = []
     for row in results:
-        key = (row["floorplan"], row["availability"], row["available_on"])
+        key = (
+            row["floorplan"],
+            row["availability_count"],
+            row["price"],
+            row["available_on"],
+        )
         if key not in seen:
             seen.add(key)
             cleaned.append(row)
 
+    # keep only floorplans that appear to have availability info
+    cleaned = [
+        row for row in cleaned
+        if row.get("availability_count") or row.get("available_on")
+    ]
+
+    cleaned.sort(key=lambda x: x["floorplan"])
     return cleaned
 
 
-def load_previous():
+def load_previous() -> list[dict]:
     if STATE_FILE.exists():
         return json.loads(STATE_FILE.read_text())
     return []
 
 
-def save_current(data):
+def save_current(data: list[dict]) -> None:
     STATE_FILE.write_text(json.dumps(data, indent=2))
 
 
-def send_email(new_items):
-    sender = os.environ["ALERT_EMAIL"]
-    recipient = os.environ["ALERT_TO"]
-    password = os.environ["ALERT_APP_PASSWORD"]
+def format_row(row: dict) -> str:
+    return (
+        f'{row["floorplan"]} | '
+        f'{row.get("availability_count") or "No count"} | '
+        f'{row.get("price") or "No price"} | '
+        f'Available On: {row.get("available_on") or "N/A"}'
+    )
 
-    body = "New floorplan availability found:\n\n"
-    for item in new_items:
-        body += f"- {item[0]} | {item[1]} | {item[2]}\n"
+
+def send_email(subject: str, body: str) -> None:
+    sender = os.getenv("ALERT_EMAIL")
+    recipient = os.getenv("ALERT_TO")
+    password = os.getenv("ALERT_APP_PASSWORD")
+
+    if not sender or not recipient or not password:
+        print("Email secrets not set. Skipping email.")
+        print(body)
+        return
 
     msg = MIMEText(body)
-    msg["Subject"] = "Gunther floorplan alert"
+    msg["Subject"] = subject
     msg["From"] = sender
     msg["To"] = recipient
 
@@ -75,26 +158,53 @@ def send_email(new_items):
         smtp.send_message(msg)
 
 
-def main():
-    current = fetch_floorplans()
+def main() -> None:
+    html = get_page_html(URL)
+    current = parse_floorplans(html)
     previous = load_previous()
 
-    prev_keys = {
-        (x["floorplan"], x.get("availability"), x.get("available_on"))
-        for x in previous
-    }
-    curr_keys = {
-        (x["floorplan"], x.get("availability"), x.get("available_on"))
-        for x in current
-    }
+    # first run: seed state only
+    if not previous:
+        print("No existing state found. Saving initial snapshot without alert.")
+        print("Initial snapshot:")
+        for row in current:
+            print("-", format_row(row))
+        save_current(current)
+        return
 
-    new_items = sorted(curr_keys - prev_keys)
+    prev_map = {row["floorplan"]: row for row in previous}
+    curr_map = {row["floorplan"]: row for row in current}
 
-    if new_items:
-        print("New availability found:")
-        for item in new_items:
-            print(item)
-        send_email(new_items)
+    changes = []
+
+    # new or changed floorplans
+    for floorplan, curr in curr_map.items():
+        prev = prev_map.get(floorplan)
+        if prev is None:
+            changes.append(f"NEW: {format_row(curr)}")
+            continue
+
+        changed_fields = []
+        for field in ["availability_count", "price", "available_on", "beds", "baths", "sqft"]:
+            if prev.get(field) != curr.get(field):
+                changed_fields.append(
+                    f'{field}: "{prev.get(field)}" -> "{curr.get(field)}"'
+                )
+
+        if changed_fields:
+            changes.append(
+                f'CHANGED: {floorplan}\n  ' + "\n  ".join(changed_fields)
+            )
+
+    # removed floorplans
+    for floorplan, prev in prev_map.items():
+        if floorplan not in curr_map:
+            changes.append(f"REMOVED: {format_row(prev)}")
+
+    if changes:
+        body = "Gunther floorplan changes detected on /floorplans:\n\n" + "\n\n".join(changes)
+        print(body)
+        send_email("Gunther floorplan update", body)
     else:
         print("No changes found.")
 
