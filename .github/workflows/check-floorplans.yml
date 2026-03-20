@@ -1,0 +1,40 @@
+name: Check Gunther Floorplans
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Run scraper
+        env:
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+          ALERT_TO: ${{ secrets.ALERT_TO }}
+          ALERT_APP_PASSWORD: ${{ secrets.ALERT_APP_PASSWORD }}
+        run: python scrape.py
+
+      - name: Commit updated state file
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add state.json || true
+          git diff --cached --quiet || git commit -m "Update floorplan state"
+          git push
