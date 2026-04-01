@@ -6,7 +6,7 @@
       "baths": null,
       "sqft": "786 Sq. Ft.",
       "availability_count": "1 Available",
-      "price": "$1,938",
+      "price": null,
       "available_on": null
     },
     {
@@ -15,9 +15,18 @@
       "baths": null,
       "sqft": "769 Sq. Ft.",
       "availability_count": "2 Available",
-      "price": "$1,843",
+      "price": null,
+      "available_on": null
+    },
+    {
+      "floorplan": "ADL10",
+      "beds": null,
+      "baths": null,
+      "sqft": "997 Sq. Ft.",
+      "availability_count": "1 Available",
+      "price": null,
       "available_on": null
     }
   ],
-  "changed_today": false
+  "changed_today": true
 }
