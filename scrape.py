@@ -50,12 +50,13 @@ def parse_floorplans(html: str) -> list[dict]:
     results = []
     current = None
 
-    plan_re = re.compile(r"^[A-Z]\d{1,2}$")
-    price_re = re.compile(r"^\$[\d,]+(?:/\s*month)?$")
+    plan_re = re.compile(r"^[A-Z]{1,5}\d{0,3}$")
+    price_re = re.compile(r"^\$[\d,]+(?:\s*to-?\$[\d,]+)?\s*/\s*month$", re.IGNORECASE)
+    starting_price_re = re.compile(r"^Starting at \$[\d,]+$", re.IGNORECASE)
     available_on_re = re.compile(r"Available On:\s*([0-9]{1,2}/[0-9]{1,2}/[0-9]{4})")
     count_re = re.compile(r"^\d+\s+Available$", re.IGNORECASE)
-    beds_re = re.compile(r"^\d+\s*Bed$", re.IGNORECASE)
-    baths_re = re.compile(r"^\d+\s*Bath$", re.IGNORECASE)
+    beds_re = re.compile(r"^\d+(?:\.\d+)?\s*Beds?$", re.IGNORECASE)
+    baths_re = re.compile(r"^\d+(?:\.\d+)?\s*Baths?$", re.IGNORECASE)
     sqft_re = re.compile(r"^\d+\s*Sq\.?\s*Ft\.?$", re.IGNORECASE)
 
     for line in lines:
