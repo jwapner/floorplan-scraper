@@ -90,7 +90,7 @@ def parse_floorplans(html: str) -> list[dict]:
             current["sqft"] = line
         elif count_re.match(line) and current["availability_count"] is None:
             current["availability_count"] = line
-        elif price_re.match(line) and current["price"] is None:
+        elif (price_re.match(line) or starting_price_re.match(line)) and current["price"] is None:
             current["price"] = line
         else:
             m = available_on_re.search(line)
