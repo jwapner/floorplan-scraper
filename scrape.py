@@ -51,7 +51,7 @@ def parse_floorplans(html: str) -> list[dict]:
     current = None
 
     plan_re = re.compile(r"^[A-Z]{1,5}\d{0,3}$")
-    price_re = re.compile(r"^\$[\d,]+(?:\s*to-?\$[\d,]+)?\s*/\s*month$", re.IGNORECASE)
+    price_re = re.compile(r"^\$[\d,]+(?:/\s*month)?$", re.IGNORECASE)
     starting_price_re = re.compile(r"^Starting at \$[\d,]+$", re.IGNORECASE)
     available_on_re = re.compile(r"Available On:\s*([0-9]{1,2}/[0-9]{1,2}/[0-9]{4})")
     count_re = re.compile(r"^\d+\s+Available$", re.IGNORECASE)
@@ -90,7 +90,9 @@ def parse_floorplans(html: str) -> list[dict]:
             current["sqft"] = line
         elif count_re.match(line) and current["availability_count"] is None:
             current["availability_count"] = line
-        elif (price_re.match(line) or starting_price_re.match(line)) and current["price"] is None:
+        elif price_re.match(line) and current["price"] is None:
+            current["price"] = line
+        elif starting_price_re.match(line) and current["price"] is None:
             current["price"] = line
         else:
             m = available_on_re.search(line)
