@@ -5,8 +5,8 @@
       "beds": null,
       "baths": null,
       "sqft": "769 Sq. Ft.",
-      "availability_count": "2 Available",
-      "price": "$1,843",
+      "availability_count": "1 Available",
+      "price": "$1,923",
       "available_on": null
     },
     {
@@ -19,5 +19,5 @@
       "available_on": null
     }
   ],
-  "changed_today": false
+  "changed_today": true
 }
