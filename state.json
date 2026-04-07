@@ -1,15 +1,6 @@
 {
   "floorplans": [
     {
-      "floorplan": "A7",
-      "beds": null,
-      "baths": null,
-      "sqft": "769 Sq. Ft.",
-      "availability_count": "1 Available",
-      "price": "$1,923",
-      "available_on": null
-    },
-    {
       "floorplan": "ADL10",
       "beds": null,
       "baths": null,
@@ -19,5 +10,5 @@
       "available_on": null
     }
   ],
-  "changed_today": false
+  "changed_today": true
 }
