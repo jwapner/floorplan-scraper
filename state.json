@@ -1,14 +1,4 @@
 {
-  "floorplans": [
-    {
-      "floorplan": "ADL10",
-      "beds": null,
-      "baths": null,
-      "sqft": "997 Sq. Ft.",
-      "availability_count": "1 Available",
-      "price": "$2,298",
-      "available_on": null
-    }
-  ],
-  "changed_today": false
+  "floorplans": [],
+  "changed_today": true
 }
