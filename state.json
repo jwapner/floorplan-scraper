@@ -8,6 +8,15 @@
       "availability_count": "1 Available",
       "price": "$2,103",
       "available_on": null
+    },
+    {
+      "floorplan": "S1",
+      "beds": null,
+      "baths": null,
+      "sqft": "616 Sq. Ft.",
+      "availability_count": "1 Available",
+      "price": "$1,712",
+      "available_on": null
     }
   ],
   "changed_today": true
