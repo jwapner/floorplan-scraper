@@ -6,7 +6,7 @@
       "baths": null,
       "sqft": "811 Sq. Ft.",
       "availability_count": "1 Available",
-      "price": "$2,103",
+      "price": null,
       "available_on": null
     },
     {
@@ -15,9 +15,9 @@
       "baths": null,
       "sqft": "616 Sq. Ft.",
       "availability_count": "1 Available",
-      "price": "$1,712",
+      "price": null,
       "available_on": null
     }
   ],
-  "changed_today": false
+  "changed_today": true
 }
