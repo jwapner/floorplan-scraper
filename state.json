@@ -1,14 +1,4 @@
 {
-  "floorplans": [
-    {
-      "floorplan": "S1",
-      "beds": null,
-      "baths": null,
-      "sqft": "616 Sq. Ft.",
-      "availability_count": "1 Available",
-      "price": null,
-      "available_on": null
-    }
-  ],
-  "changed_today": false
+  "floorplans": [],
+  "changed_today": true
 }
