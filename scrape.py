@@ -194,10 +194,20 @@ def check_floorplans() -> None:
     current = parse_floorplans(html)
 
     if not previous:
-        print("No existing floorplan state found. Saving initial snapshot without alert.")
+        print("No previous floorplans found.")
+
+        if current:
+            body = (
+                "Gunther floorplan changes detected on /floorplans:\n\n"
+                + "\n\n".join(f"NEW: {format_row(row)}" for row in current)
+            )
+            print(body)
+            send_email("Gunther floorplan update", body)
+            state["changed_today"] = True
+
         state["floorplans"] = current
         save_state(state)
-        return
+        return    
 
     prev_map = {row["floorplan"]: row for row in previous}
     curr_map = {row["floorplan"]: row for row in current}
