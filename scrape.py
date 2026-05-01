@@ -183,7 +183,7 @@ def send_email(subject: str, body: str) -> None:
 
 
 def check_floorplans() -> None:
-    delay = random.randint(0, 1200)  # 0–20 minutes
+    delay = random.randint(0, 600)  # 0–10 minutes
     print(f"Sleeping for {delay} seconds before scraping...")
     time.sleep(delay)
     
