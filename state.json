@@ -3,7 +3,7 @@
     {
       "floorplan": "A23",
       "beds": null,
-      "baths": null,
+      "baths": "1 bath",
       "sqft": "922 Sq. Ft.",
       "availability_count": "1 Available",
       "price": "$2,248.00",
@@ -12,7 +12,7 @@
     {
       "floorplan": "S1",
       "beds": "Studio",
-      "baths": null,
+      "baths": "1 bath",
       "sqft": "616 Sq. Ft.",
       "availability_count": "1 Available",
       "price": "$1,702.00",
