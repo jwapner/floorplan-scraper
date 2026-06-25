@@ -78,10 +78,13 @@ def parse_floorplans(html: str) -> list[dict]:
         if not current:
             continue
 
-        if beds_re.match(line) and current["beds"] is None:
-            current["beds"] = line
-        elif baths_re.match(line) and current["baths"] is None:
-            current["baths"] = line
+        bed_match = re.search(r"(Studio|\d+(?:\.\d+)?\s*Beds?)", line, re.IGNORECASE)
+        bath_match = re.search(r"(\d+(?:\.\d+)?\s*Baths?)", line, re.IGNORECASE)
+
+        if bed_match and current["beds"] is None:
+            current["beds"] = bed_match.group(1)
+        elif bath_match and current["baths"] is None:
+            current["baths"] = bath_match.group(1)
         elif sqft_re.match(line) and current["sqft"] is None:
             current["sqft"] = line
         elif count_re.match(line) and current["availability_count"] is None:
