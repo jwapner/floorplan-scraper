@@ -1,4 +1,5 @@
 {
   "floorplans": [],
-  "changed_today": true
+  "changed_today": true,
+  "missing_counts": {}
 }
