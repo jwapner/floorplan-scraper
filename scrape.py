@@ -29,7 +29,7 @@ def get_page_html(url: str) -> str:
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=90000)
 
-            page.wait_for_timeout(random.randint(3000, 7000))
+            page.wait_for_timeout(random.randint(8000, 12000))
 
             html = page.content()
             return html
@@ -136,18 +136,20 @@ def load_state() -> dict:
             return {
                 "floorplans": data,
                 "changed_today": False,
+                "missing_counts": {},
             }
 
         if isinstance(data, dict):
             data.setdefault("floorplans", [])
             data.setdefault("changed_today", False)
+            data.setdefault("missing_counts", {})
             return data
 
     return {
         "floorplans": [],
         "changed_today": False,
+        "missing_counts": {},
     }
-
 
 def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, indent=2))
@@ -186,9 +188,10 @@ def check_floorplans() -> None:
     delay = random.randint(0, 600)  # 0–10 minutes
     print(f"Sleeping for {delay} seconds before scraping...")
     time.sleep(delay)
-    
+
     state = load_state()
     previous = state.get("floorplans", [])
+    missing_counts = state.get("missing_counts", {})
 
     html = get_page_html(URL)
     current = parse_floorplans(html)
@@ -206,19 +209,27 @@ def check_floorplans() -> None:
             state["changed_today"] = True
 
         state["floorplans"] = current
+        state["missing_counts"] = missing_counts
         save_state(state)
-        return    
+        return
 
     prev_map = {row["floorplan"]: row for row in previous}
     curr_map = {row["floorplan"]: row for row in current}
 
     changes = []
 
+    # Start next state with all currently parsed floorplans
+    next_map = dict(curr_map)
+
     for floorplan, curr in curr_map.items():
         prev = prev_map.get(floorplan)
+
         if prev is None:
             changes.append(f"NEW: {format_row(curr)}")
+            missing_counts.pop(floorplan, None)
             continue
+
+        missing_counts.pop(floorplan, None)
 
         changed_fields = []
         for field in ["availability_count", "price", "available_on", "beds", "baths", "sqft"]:
@@ -233,8 +244,22 @@ def check_floorplans() -> None:
             )
 
     for floorplan, prev in prev_map.items():
-        if floorplan not in curr_map:
+        if floorplan in curr_map:
+            continue
+
+        missing_counts[floorplan] = missing_counts.get(floorplan, 0) + 1
+
+        print(
+            f"{floorplan} missing for "
+            f"{missing_counts[floorplan]} consecutive run(s)"
+        )
+
+        if missing_counts[floorplan] >= 3:
             changes.append(f"REMOVED: {format_row(prev)}")
+            missing_counts.pop(floorplan, None)
+        else:
+            # Keep it in state until removal is confirmed
+            next_map[floorplan] = prev
 
     if changes:
         body = "Gunther floorplan changes detected on /floorplans:\n\n" + "\n\n".join(changes)
@@ -244,7 +269,8 @@ def check_floorplans() -> None:
     else:
         print("No changes found.")
 
-    state["floorplans"] = current
+    state["floorplans"] = sorted(next_map.values(), key=lambda x: x["floorplan"])
+    state["missing_counts"] = missing_counts
     save_state(state)
 
 
