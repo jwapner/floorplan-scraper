@@ -1,8 +1,8 @@
 import json
 import os
+import random
 import re
 import smtplib
-import random
 import time
 from email.mime.text import MIMEText
 from pathlib import Path
@@ -28,12 +28,8 @@ def get_page_html(url: str) -> str:
 
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=90000)
-
             page.wait_for_timeout(random.randint(8000, 12000))
-
-            html = page.content()
-            return html
-
+            return page.content()
         finally:
             browser.close()
 
@@ -51,11 +47,11 @@ def parse_floorplans(html: str) -> list[dict]:
     current = None
 
     plan_re = re.compile(r"^[A-Z]{1,5}\d{0,3}$")
-    price_re = re.compile(r"^\$[\d,]+(?:/\s*month)?$", re.IGNORECASE)
-    starting_price_re = re.compile(r"^Starting at \$[\d,]+$", re.IGNORECASE)
+    price_re = re.compile(r"^\$[\d,]+(?:\.\d{2})?(?:/\s*month)?$", re.IGNORECASE)
+    starting_price_re = re.compile(r"^Starting at \$[\d,]+(?:\.\d{2})?$", re.IGNORECASE)
     available_on_re = re.compile(r"Available On:\s*([0-9]{1,2}/[0-9]{1,2}/[0-9]{4})")
     count_re = re.compile(r"^\d+\s+Available$", re.IGNORECASE)
-    beds_re = re.compile(r"^\d+(?:\.\d+)?\s*Beds?$", re.IGNORECASE)
+    beds_re = re.compile(r"^\d+(?:\.\d+)?\s*Beds?$|^Studio$", re.IGNORECASE)
     baths_re = re.compile(r"^\d+(?:\.\d+)?\s*Baths?$", re.IGNORECASE)
     sqft_re = re.compile(r"^\d+\s*Sq\.?\s*Ft\.?$", re.IGNORECASE)
 
@@ -130,7 +126,11 @@ def parse_floorplans(html: str) -> list[dict]:
 
 def load_state() -> dict:
     if STATE_FILE.exists():
-        data = json.loads(STATE_FILE.read_text())
+        try:
+            data = json.loads(STATE_FILE.read_text())
+        except json.JSONDecodeError:
+            print("state.json is invalid JSON. Starting from empty state.")
+            data = {}
 
         if isinstance(data, list):
             return {
@@ -150,6 +150,7 @@ def load_state() -> dict:
         "changed_today": False,
         "missing_counts": {},
     }
+
 
 def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, indent=2))
@@ -174,18 +175,24 @@ def send_email(subject: str, body: str) -> None:
         print(body)
         return
 
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = sender
-    msg["To"] = ", ".join(recipients)
-
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(sender, password)
-        smtp.sendmail(sender, recipients, msg.as_string())
+
+        for recipient in recipients:
+            msg = MIMEText(body)
+            msg["Subject"] = subject
+            msg["From"] = sender
+            msg["To"] = recipient
+
+            try:
+                smtp.sendmail(sender, [recipient], msg.as_string())
+                print(f"Sent alert to {recipient}")
+            except Exception as e:
+                print(f"Failed to send alert to {recipient}: {e}")
 
 
 def check_floorplans() -> None:
-    delay = random.randint(0, 600)  # 0–10 minutes
+    delay = random.randint(0, 600)
     print(f"Sleeping for {delay} seconds before scraping...")
     time.sleep(delay)
 
@@ -196,27 +203,27 @@ def check_floorplans() -> None:
     html = get_page_html(URL)
     current = parse_floorplans(html)
 
-    print("Current parsed floorplans:")
-    
+    print("Parsed floorplans:")
     for row in current:
         print(row)
-
     print(f"Parsed {len(current)} floorplans")
+
+    if not current:
+        print("Parsed zero floorplans. Treating as scrape failure and NOT updating state.json.")
+        return
 
     if not previous:
         print("No previous floorplans found.")
 
-        if current:
-            body = (
-                "Gunther floorplan changes detected on /floorplans:\n\n"
-                + "\n\n".join(f"NEW: {format_row(row)}" for row in current)
-            )
-            print(body)
-            send_email("Gunther floorplan update", body)
-            state["changed_today"] = True
-
+        body = (
+            "Gunther floorplan changes detected on /floorplans:\n\n"
+            + "\n\n".join(f"NEW: {format_row(row)}" for row in current)
+        )
+        print(body)
+        send_email("Gunther floorplan update", body)
+        state["changed_today"] = True
         state["floorplans"] = current
-        state["missing_counts"] = missing_counts
+        state["missing_counts"] = {}
         save_state(state)
         return
 
@@ -227,8 +234,6 @@ def check_floorplans() -> None:
     print("Current floorplans:", sorted(curr_map.keys()))
 
     changes = []
-
-    # Start next state with all currently parsed floorplans
     next_map = dict(curr_map)
 
     for floorplan, curr in curr_map.items():
@@ -258,17 +263,12 @@ def check_floorplans() -> None:
             continue
 
         missing_counts[floorplan] = missing_counts.get(floorplan, 0) + 1
-
-        print(
-            f"{floorplan} missing for "
-            f"{missing_counts[floorplan]} consecutive run(s)"
-        )
+        print(f"{floorplan} missing for {missing_counts[floorplan]} consecutive run(s)")
 
         if missing_counts[floorplan] >= 3:
             changes.append(f"REMOVED: {format_row(prev)}")
             missing_counts.pop(floorplan, None)
         else:
-            # Keep it in state until removal is confirmed
             next_map[floorplan] = prev
 
     if changes:
