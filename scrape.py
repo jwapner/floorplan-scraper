@@ -201,7 +201,7 @@ def check_floorplans() -> None:
     for row in current:
         print(row)
 
-print(f"Parsed {len(current)} floorplans")
+    print(f"Parsed {len(current)} floorplans")
 
     if not previous:
         print("No previous floorplans found.")
