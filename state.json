@@ -1,5 +1,24 @@
 {
-  "floorplans": [],
-  "changed_today": false,
+  "floorplans": [
+    {
+      "floorplan": "A23",
+      "beds": null,
+      "baths": null,
+      "sqft": "922 Sq. Ft.",
+      "availability_count": "1 Available",
+      "price": "$2,248.00",
+      "available_on": null
+    },
+    {
+      "floorplan": "S1",
+      "beds": "Studio",
+      "baths": null,
+      "sqft": "616 Sq. Ft.",
+      "availability_count": "1 Available",
+      "price": "$1,702.00",
+      "available_on": null
+    }
+  ],
+  "changed_today": true,
   "missing_counts": {}
 }
