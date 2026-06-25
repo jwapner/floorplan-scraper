@@ -196,6 +196,13 @@ def check_floorplans() -> None:
     html = get_page_html(URL)
     current = parse_floorplans(html)
 
+    print("Current parsed floorplans:")
+    
+    for row in current:
+        print(row)
+
+print(f"Parsed {len(current)} floorplans")
+
     if not previous:
         print("No previous floorplans found.")
 
@@ -215,6 +222,9 @@ def check_floorplans() -> None:
 
     prev_map = {row["floorplan"]: row for row in previous}
     curr_map = {row["floorplan"]: row for row in current}
+
+    print("Previous floorplans:", sorted(prev_map.keys()))
+    print("Current floorplans:", sorted(curr_map.keys()))
 
     changes = []
 
