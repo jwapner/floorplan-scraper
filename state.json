@@ -8,19 +8,8 @@
       "availability_count": "1 Available",
       "price": "$2,248.00",
       "available_on": null
-    },
-    {
-      "floorplan": "S1",
-      "beds": "Studio",
-      "baths": "1 bath",
-      "sqft": "616 Sq. Ft.",
-      "availability_count": "1 Available",
-      "price": "$1,702.00",
-      "available_on": null
     }
   ],
-  "changed_today": false,
-  "missing_counts": {
-    "S1": 2
-  }
+  "changed_today": true,
+  "missing_counts": {}
 }
