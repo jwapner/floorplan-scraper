@@ -8,8 +8,17 @@
       "availability_count": "1 Available",
       "price": "$2,248.00",
       "available_on": null
+    },
+    {
+      "floorplan": "A8",
+      "beds": null,
+      "baths": "1 bath",
+      "sqft": "950 Sq. Ft.",
+      "availability_count": "1 Available",
+      "price": "$2,145.00",
+      "available_on": null
     }
   ],
-  "changed_today": false,
+  "changed_today": true,
   "missing_counts": {}
 }
