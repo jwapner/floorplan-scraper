@@ -17,10 +17,19 @@
       "availability_count": "1 Available",
       "price": "$2,145.00",
       "available_on": null
+    },
+    {
+      "floorplan": "S8",
+      "beds": "Studio",
+      "baths": "1 bath",
+      "sqft": "630 Sq. Ft.",
+      "availability_count": "1 Available",
+      "price": "$1,756.00",
+      "available_on": null
     }
   ],
-  "changed_today": false,
+  "changed_today": true,
   "missing_counts": {
-    "A8": 1
+    "A8": 2
   }
 }
