@@ -20,5 +20,7 @@
     }
   ],
   "changed_today": false,
-  "missing_counts": {}
+  "missing_counts": {
+    "A8": 1
+  }
 }
