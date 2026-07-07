@@ -10,15 +10,6 @@
       "available_on": null
     },
     {
-      "floorplan": "A8",
-      "beds": null,
-      "baths": "1 bath",
-      "sqft": "950 Sq. Ft.",
-      "availability_count": "1 Available",
-      "price": "$2,145.00",
-      "available_on": null
-    },
-    {
       "floorplan": "S8",
       "beds": "Studio",
       "baths": "1 bath",
@@ -29,7 +20,5 @@
     }
   ],
   "changed_today": true,
-  "missing_counts": {
-    "A8": 2
-  }
+  "missing_counts": {}
 }
