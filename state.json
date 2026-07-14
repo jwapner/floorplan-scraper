@@ -1,24 +1,6 @@
 {
   "floorplans": [
     {
-      "floorplan": "A18",
-      "beds": null,
-      "baths": "1 bath",
-      "sqft": "893 Sq. Ft.",
-      "availability_count": "1 Available",
-      "price": "$2,134.00",
-      "available_on": null
-    },
-    {
-      "floorplan": "A23",
-      "beds": null,
-      "baths": "1 bath",
-      "sqft": "922 Sq. Ft.",
-      "availability_count": "1 Available",
-      "price": "$2,248.00",
-      "available_on": null
-    },
-    {
       "floorplan": "S8",
       "beds": "Studio",
       "baths": "1 bath",
@@ -28,9 +10,6 @@
       "available_on": null
     }
   ],
-  "changed_today": false,
-  "missing_counts": {
-    "A18": 2,
-    "A23": 2
-  }
+  "changed_today": true,
+  "missing_counts": {}
 }
