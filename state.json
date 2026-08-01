@@ -10,15 +10,6 @@
       "available_on": null
     },
     {
-      "floorplan": "AD3",
-      "beds": null,
-      "baths": "1 bath",
-      "sqft": null,
-      "availability_count": "1 Available",
-      "price": "$2,198.00",
-      "available_on": null
-    },
-    {
       "floorplan": "S1",
       "beds": "Studio",
       "baths": "1 bath",
@@ -28,8 +19,6 @@
       "available_on": null
     }
   ],
-  "changed_today": false,
-  "missing_counts": {
-    "AD3": 2
-  }
+  "changed_today": true,
+  "missing_counts": {}
 }
