@@ -1,6 +1,15 @@
 {
   "floorplans": [
     {
+      "floorplan": "A1",
+      "beds": null,
+      "baths": "1 bath",
+      "sqft": "740 Sq. Ft.",
+      "availability_count": "1 Available",
+      "price": "$1,903.00",
+      "available_on": null
+    },
+    {
       "floorplan": "A23",
       "beds": null,
       "baths": "1 bath",
@@ -10,6 +19,6 @@
       "available_on": null
     }
   ],
-  "changed_today": false,
+  "changed_today": true,
   "missing_counts": {}
 }
