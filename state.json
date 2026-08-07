@@ -6,7 +6,7 @@
       "baths": "1 bath",
       "sqft": "922 Sq. Ft.",
       "availability_count": "1 Available",
-      "price": "$2,278.00",
+      "price": null,
       "available_on": null
     },
     {
@@ -19,8 +19,8 @@
       "available_on": null
     }
   ],
-  "changed_today": false,
+  "changed_today": true,
   "missing_counts": {
-    "S1": 1
+    "S1": 2
   }
 }
