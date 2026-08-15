@@ -8,19 +8,8 @@
       "availability_count": "1 Available",
       "price": "$2,278.00",
       "available_on": null
-    },
-    {
-      "floorplan": "A6",
-      "beds": null,
-      "baths": "1 bath",
-      "sqft": "786 Sq. Ft.",
-      "availability_count": "1 Available",
-      "price": "$1,941.00",
-      "available_on": null
     }
   ],
   "changed_today": true,
-  "missing_counts": {
-    "A6": 2
-  }
+  "missing_counts": {}
 }
