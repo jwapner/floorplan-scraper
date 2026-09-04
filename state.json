@@ -8,8 +8,19 @@
       "availability_count": "1 Available",
       "price": "$2,278.00",
       "available_on": null
+    },
+    {
+      "floorplan": "ADL10",
+      "beds": null,
+      "baths": "1.5 bath",
+      "sqft": "997 Sq. Ft.",
+      "availability_count": "1 Available",
+      "price": "$2,329.00",
+      "available_on": null
     }
   ],
-  "changed_today": false,
-  "missing_counts": {}
+  "changed_today": true,
+  "missing_counts": {
+    "A23": 1
+  }
 }
